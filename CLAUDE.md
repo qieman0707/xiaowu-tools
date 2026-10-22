@@ -4,7 +4,7 @@
 
 | 人群 | 工具 | 状态 |
 |---|---|---|
-| 歌手 | 音乐创作 + MV：歌手自己的歌词 → 编曲小样（Suno）+ 竖屏 MV | 链路图已摆出，等接 Suno |
+| 歌手 | 音乐创作 + MV：歌手自己的歌词 → 编曲小样（Suno）+ 竖屏 MV | 10-23 起「读」「画」「成」三站真跑：分段 + 风格词 + Suno 包（复制去 Suno 手动出小样）+ 三张分镜 + 歌词海报；「编」「对」「合」等 Suno 接口 |
 | AI 种子选手 | 小屋文案 / 海报助手：一句话 → 预告、小红书、短视频标题、海报 | 可用 |
 
 ## 结构
@@ -14,10 +14,12 @@
   - `route.js`：路线图——每个 skill 是一段路，每一站一个毛笔字印章，走过的站盖朱砂章、正在赶路的地方有一盏灯在走。站点摆放归 `style.css`，这里只照着站点画路
   - `poster.js`：海报直接画在 canvas 上（远方 / 黑白 / 江湖 / 唱片 × 3:4 / 9:16）。每种样式对哪几张参考图写在文件开头；前三种会自动请 AI 画一张画面，唱片纯排版
   - `fonts/`：马善政毛笔字（大标题）+ 志莽行书（日期、副标）+ 思源宋体，裁成常用字子集自己托管（国内打不开 Google Fonts）。重裁跑 `tools/build-fonts.py`
-- `worker/`：Cloudflare 中转 `xiaowu-api.xiaochens.com`。网页是公开的，密钥只能放这里，中转替网页调 Gemini；花费靠 AI Studio 月度上限兜底
+- `worker/`：Cloudflare 中转 `xiaowu-api.xiaochens.com`。接口：`/api/copy`（种子选手文案）、`/api/image`（底图 / 分镜）、`/api/song`（歌手读词，提示词在 `src/song.js`，歌词一行不在原文里就退回原文分段）。网页是公开的，密钥只能放这里，中转替网页调 Gemini；花费靠 AI Studio 月度上限兜底
   - `src/voice.js`：小屋口吻卡。只放有出处的原话（出处在私有仓库 `qieman0707/folk-poster-research` 的 `dabing-xiaowu-detailed.md`），新增必须带出处
   - 密钥：`npx wrangler secret put GEMINI_API_KEY`（以前的 `INVITE_CODES` 已不用）
   - 发布：`cd worker && npx wrangler deploy`
+- 网页发布：仓库 `qieman0707/xiaowu-tools` 10-23 还没建（agent 建公开仓被权限拦）。建法：`gh repo create qieman0707/xiaowu-tools --public --source . --push`，再 `gh api -X POST repos/qieman0707/xiaowu-tools/pages -f build_type=legacy -f 'source[branch]=main' -f 'source[path]=/docs'`，站点 `https://qieman0707.github.io/xiaowu-tools/`，中转 CORS 已放行这个域
+- 编曲试过 MiniMax 音乐接口（密钥库里有 key）：海外 key 无效，国内站 2026-08-20 起不对新用户开放，走不通；别再试，等 Suno
 
 ## 规矩
 
