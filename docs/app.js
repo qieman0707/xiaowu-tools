@@ -1,7 +1,9 @@
-import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023c';
-import { makeRoute } from './route.js?v=20261023c';
+import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023d';
+import { makeRoute } from './route.js?v=20261023d';
 
-const API = new URLSearchParams(location.search).get('api') || 'https://xiaowu-api.xiaochens.com';
+// ?api= 只在本机预览时认，线上一律走固定中转，免得别人拿链接把人导去假接口
+const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
+const API = (LOCAL && new URLSearchParams(location.search).get('api')) || 'https://xiaowu-api.xiaochens.com';
 const $ = (s) => document.querySelector(s);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
