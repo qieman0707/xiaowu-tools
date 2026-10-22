@@ -1,0 +1,15 @@
+name = "xiaowu-tools-api"
+main = "src/index.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+routes = [{ pattern = "xiaowu-api.xiaochens.com", custom_domain = true }]
+
+# 国内用户可能落到香港节点，Gemini 不对香港开放；让中转在美国机房发请求
+[placement]
+region = "gcp:us-east4"
+
+[vars]
+TEXT_MODEL = "gemini-4-argon"
+IMAGE_MODEL = "gemini-3.1-flash-image"
+
+# 密钥用 wrangler secret put 放：GEMINI_API_KEY、INVITE_CODES（逗号分隔）

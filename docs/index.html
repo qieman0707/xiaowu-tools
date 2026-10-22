@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>小屋工具台</title>
+<meta name="theme-color" content="#eae4d6">
+<meta name="color-scheme" content="light">
+<link rel="preload" href="fonts/brush.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/serif.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/ink-wide.jpg" as="image">
+<link rel="stylesheet" href="style.css?v=20261023c">
+</head>
+<body>
+<!-- 顶栏压在画面上：左边落款，右边两个 skill 的切换 -->
+<header class="bar">
+  <span class="brand">大冰的小屋 · 工具台</span>
+  <nav class="switch" role="tablist" aria-label="选一个 skill">
+    <button role="tab" id="tab-seed" aria-controls="p-seed" aria-selected="true">种子选手</button>
+    <button role="tab" id="tab-singer" aria-controls="p-singer" aria-selected="false" tabindex="-1">歌手</button>
+  </nav>
+</header>
+
+<main>
+  <!-- skill 2：小屋文案 / 海报助手。整页是一张摊开的宣纸：首屏满版淡墨画 + 巨大朱砂毛笔字 + 第一站的输入；往下一条竖路，每站一张卡 -->
+  <section id="p-seed" role="tabpanel" aria-labelledby="tab-seed">
+    <div class="map">
+      <svg class="road" aria-hidden="true"><path class="road-base"/><path class="road-done"/><circle class="rider" r="6"/></svg>
+
+      <div class="hero">
+        <h1 class="giant" aria-label="小屋工具台"><span>小</span><span>屋</span><span>工</span><span>具</span><span>台</span></h1>
+        <div class="hero-foot">
+          <p class="lede">一句话，出一张海报和三份文案。<br>从这里往下走，每一站出的东西就落在那一站。</p>
+          <p class="vert">不冒充大冰，不编任何人的话。<br>只写你给的事实，缺了就列出来。</p>
+        </div>
+
+        <div class="stop first" data-stop="in">
+          <span class="seal">说</span>
+          <div class="card">
+            <h2>说一句话<small>哪店、哪天、几点</small><em class="live"></em></h2>
+            <form id="ask-form" class="ask">
+              <textarea id="ask" rows="2" maxlength="800" aria-label="这次要宣传什么" placeholder="比如：济南店 本周六晚八点 原创专场，免费"></textarea>
+              <div class="ask-foot">
+                <div class="chips" aria-label="试一个例子">
+                  <button type="button" data-eg="济南店 10月25日周六晚八点 原创专场，免费，不用预约">专场</button>
+                  <button type="button" data-eg="苏州山塘店 平安夜加场，八点开唱">节日</button>
+                  <button type="button" data-eg="百城百校音乐会 11月8日晚七点 某某学院体育馆，免费">百城百校</button>
+                </div>
+                <button type="submit" class="go" id="go">出发</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <ol class="route" aria-label="这个 skill 的每一站">
+
+        <li class="stop" data-stop="read">
+          <span class="seal">读</span>
+          <div class="card">
+            <h2>拆出事实<small>Gemini 4</small><em class="live"></em></h2>
+            <div class="body" data-body="read"></div>
+          </div>
+        </li>
+
+        <li class="stop" data-stop="write">
+          <span class="seal">写</span>
+          <div class="card">
+            <h2>小屋口吻写文案<small>Gemini 4 + 口吻卡</small><em class="live"></em></h2>
+            <div class="body" data-body="write"></div>
+            <div class="copy" id="copy" hidden>
+              <article>
+                <h3>朋友圈 / 群预告</h3>
+                <p class="text" id="teaser"></p>
+                <button type="button" class="quiet" data-copy="teaser">复制</button>
+              </article>
+              <article>
+                <h3>小红书</h3>
+                <p class="text strong" id="xhs-title"></p>
+                <p class="text" id="xhs-body"></p>
+                <p class="text dim" id="xhs-tags"></p>
+                <button type="button" class="quiet" data-copy="xhs">复制标题和正文</button>
+              </article>
+              <article>
+                <h3>抖音 / 视频号标题</h3>
+                <p class="text" id="short"></p>
+                <button type="button" class="quiet" data-copy="short">复制</button>
+              </article>
+            </div>
+            <details class="rules">
+              <summary>口吻卡里定死的规矩</summary>
+              <ul>
+                <li>不冒充大冰，不编任何人的话</li>
+                <li>只写你给的事实，缺的列出来，不编</li>
+                <li>店里的陈设一句不写</li>
+                <li>现成原话只能照搬，一份最多引一句</li>
+                <li>不用营销腔：不容错过、燃爆、宝子们</li>
+              </ul>
+            </details>
+          </div>
+        </li>
+
+        <li class="stop" data-stop="title">
+          <span class="seal">题</span>
+          <div class="card">
+            <h2>起海报标题<small>Gemini 4</small><em class="live"></em></h2>
+            <div class="body" data-body="title"></div>
+            <details class="edit" id="edit" hidden>
+              <summary>改海报上的字</summary>
+              <label>大标题<input id="f-headline" maxlength="8"></label>
+              <label>拼音<input id="f-pinyin" maxlength="40"></label>
+              <label>副标<input id="f-subline" maxlength="20"></label>
+              <label>信息，一行一条<textarea id="f-lines" rows="4"></textarea></label>
+              <label>分舵<input id="f-branch" maxlength="12"></label>
+              <label>印章字<input id="f-seal" maxlength="4"></label>
+            </details>
+          </div>
+        </li>
+
+        <li class="stop" data-stop="draw">
+          <span class="seal">画</span>
+          <div class="card">
+            <h2>画一张画面<small>Nano Banana 2，画里不放字</small><em class="live"></em></h2>
+            <div class="body" data-body="draw"></div>
+            <div class="poster-act"><button type="button" id="bg" class="quiet" hidden>换一张画面</button></div>
+          </div>
+        </li>
+
+        <li class="stop" data-stop="set">
+          <span class="seal">排</span>
+          <div class="card">
+            <h2>排字出海报<small>程序排版，样式和尺寸随时换</small><em class="live"></em></h2>
+            <div class="poster-bar">
+              <div class="seg" role="radiogroup" aria-label="海报样式" id="tpl">
+                <button type="button" role="radio" aria-checked="true" data-v="yuanfang">远方</button>
+                <button type="button" role="radio" aria-checked="false" data-v="heibai">黑白</button>
+                <button type="button" role="radio" aria-checked="false" data-v="jianghu">江湖</button>
+                <button type="button" role="radio" aria-checked="false" data-v="changpian">唱片</button>
+              </div>
+              <div class="seg" role="radiogroup" aria-label="海报尺寸" id="size">
+                <button type="button" role="radio" aria-checked="true" data-v="3:4">3:4</button>
+                <button type="button" role="radio" aria-checked="false" data-v="9:16">9:16</button>
+              </div>
+            </div>
+          </div>
+        </li>
+
+        <li class="stop" data-stop="end">
+          <span class="seal">成</span>
+          <div class="card">
+            <h2>成品<small>海报在这，文案在「写」那站</small><em class="live"></em></h2>
+            <div class="stage"><canvas id="poster" width="1080" height="1440" aria-label="海报预览"></canvas></div>
+            <div class="poster-act"><button type="button" id="save" class="quiet" disabled>保存海报</button></div>
+          </div>
+        </li>
+
+      </ol>
+    </div>
+  </section>
+
+  <!-- skill 1：音乐创作 + MV。Suno 接上之前先把路摆出来，每站写清楚到时候这站干什么 -->
+  <section id="p-singer" role="tabpanel" aria-labelledby="tab-singer" hidden>
+    <div class="map">
+      <svg class="road" aria-hidden="true"><path class="road-base"/><path class="road-done"/><circle class="rider" r="6"/></svg>
+
+      <div class="hero">
+        <h1 class="giant" aria-label="小屋工具台"><span>小</span><span>屋</span><span>工</span><span>具</span><span>台</span></h1>
+        <div class="hero-foot">
+          <p class="lede">贴上你写的歌词，出风格词、三张分镜和一张歌词海报。<br>编曲小样要等 Suno 接口；接上之前，这里先把要粘给 Suno 的东西备好。</p>
+          <p class="vert">歌词一个字不改。<br>不冒充大冰，不编你的故事。</p>
+        </div>
+
+        <div class="stop first" data-stop="in">
+          <span class="seal">词</span>
+          <div class="card">
+            <h2>歌词<small>歌名和想要的感觉可以不填</small><em class="live"></em></h2>
+            <form id="song-form" class="ask">
+              <input id="song-name" maxlength="30" aria-label="歌名" placeholder="歌名">
+              <textarea id="song-lyrics" rows="6" maxlength="3000" aria-label="你写的歌词" placeholder="一段一段写，段与段之间空一行"></textarea>
+              <input id="song-feel" maxlength="60" aria-label="想要什么感觉" placeholder="想要什么感觉：木吉他、口琴、慢，像深夜在路上">
+              <div class="ask-foot">
+                <div class="chips" aria-label="试一首">
+                  <button type="button" id="song-eg">试一首</button>
+                </div>
+                <button type="submit" class="go" id="song-go">出发</button>
+              </div>
+            </form>
+            <!-- 弹唱录音（保留旋律重编）等 Suno 接口接上再放回来，先不骗人 -->
+          </div>
+        </div>
+      </div>
+
+      <ol class="route" aria-label="这个 skill 的每一站">
+        <li class="stop" data-stop="read">
+          <span class="seal">读</span>
+          <div class="card">
+            <h2>读懂这首歌<small>Gemini 4</small><em class="live"></em></h2>
+            <div class="body" data-body="read"></div>
+          </div>
+        </li>
+        <li class="stop" data-stop="arr" data-state="wait">
+          <span class="seal">编</span>
+          <div class="card">
+            <h2>编曲小样<small>Suno，等接口</small><em class="live"></em></h2>
+            <p class="plan">接上之后：有弹唱录音就保留你的旋律重新编曲，没有就按歌词作曲，一次出两版挑。现在先备好给 Suno 的风格词和分段歌词，自己去 Suno 粘一下，两分钟出小样。</p>
+            <div class="body" data-body="arr"></div>
+          </div>
+        </li>
+        <li class="stop" data-stop="sync" data-state="wait">
+          <span class="seal">对</span>
+          <div class="card">
+            <h2>歌词对上时间<small>Suno，等接口</small></h2>
+            <p class="plan">拿到每一句什么时候开唱，MV 的字幕跟着走。</p>
+          </div>
+        </li>
+        <li class="stop" data-stop="draw">
+          <span class="seal">画</span>
+          <div class="card">
+            <h2>画分镜<small>Nano Banana 2，画里不放字</small><em class="live"></em></h2>
+            <div class="body" data-body="draw"></div>
+          </div>
+        </li>
+        <li class="stop" data-stop="mix" data-state="wait">
+          <span class="seal">合</span>
+          <div class="card">
+            <h2>合成竖屏 MV<small>程序合成，等小样</small></h2>
+            <p class="plan">画面、小样、逐句毛笔字幕拼成 9:16 视频，发抖音、视频号。</p>
+          </div>
+        </li>
+        <li class="stop" data-stop="end">
+          <span class="seal">成</span>
+          <div class="card">
+            <h2>歌词海报<small>9:16，点上面的分镜换底图</small><em class="live"></em></h2>
+            <div class="stage"><canvas id="song-poster" width="1080" height="1920" aria-label="歌词海报预览"></canvas></div>
+            <div class="poster-act"><button type="button" id="song-save" class="quiet" disabled>保存海报</button></div>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span>大冰的小屋 · 工具台</span>
+  <span>文案 Gemini 4 · 底图 Nano Banana 2 · 排字由程序</span>
+</footer>
+
+<dialog id="viewer" aria-label="保存海报">
+  <img id="viewer-img" alt="海报">
+  <p>手机上长按图片保存；电脑点下载。</p>
+  <div class="poster-act">
+    <a id="viewer-dl" class="go" download>下载</a>
+    <button type="button" class="quiet" id="viewer-close">关闭</button>
+  </div>
+</dialog>
+
+<script type="module" src="app.js?v=20261023c"></script>
+</body>
+</html>
