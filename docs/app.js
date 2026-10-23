@@ -1,5 +1,5 @@
-import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023s';
-import { makeRoute } from './route.js?v=20261023s';
+import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023t';
+import { makeRoute } from './route.js?v=20261023t';
 
 // ?api= 只在本机预览时认，线上一律走固定中转，免得别人拿链接把人导去假接口
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
