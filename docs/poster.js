@@ -94,6 +94,17 @@ function yuanfang(ctx, W, H, p) {
   }
   if (p.subline) {
     const top = bottom - rows.length * hs * 1.02;
+    // 副标常落在天边，天色一亮黄字就看不清：字后面先垫一层扁扁的淡暗晕
+    ctx.save();
+    ctx.translate(W * 0.5, top - hs * 0.08);
+    ctx.scale(1, 0.2);
+    const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, W * 0.55);
+    halo.addColorStop(0, 'rgba(10,8,6,.55)');
+    halo.addColorStop(0.6, 'rgba(10,8,6,.3)');
+    halo.addColorStop(1, 'rgba(10,8,6,0)');
+    ctx.fillStyle = halo;
+    ctx.fillRect(-W * 0.55, -W * 0.55, W * 1.1, W * 1.1);
+    ctx.restore();
     ctx.save();
     ctx.translate(W * 0.5, top - hs * 0.08);
     ctx.rotate(-0.07);

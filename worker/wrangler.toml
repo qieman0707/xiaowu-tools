@@ -12,4 +12,4 @@ region = "gcp:us-east4"
 TEXT_MODEL = "gemini-4-argon"
 IMAGE_MODEL = "gemini-3.1-flash-image"
 
-# 密钥用 wrangler secret put 放：GEMINI_API_KEY、INVITE_CODES（逗号分隔）
+# 密钥用 wrangler secret put 放：GEMINI_API_KEY（INVITE_CODES 10-22 起不用了，demo 不设门槛）

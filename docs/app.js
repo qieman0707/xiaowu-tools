@@ -1,5 +1,5 @@
-import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023d';
-import { makeRoute } from './route.js?v=20261023d';
+import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023j';
+import { makeRoute } from './route.js?v=20261023j';
 
 // ?api= 只在本机预览时认，线上一律走固定中转，免得别人拿链接把人导去假接口
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
@@ -15,20 +15,47 @@ function el(tag, cls, ...kids) {
   return e;
 }
 
+// 等太久就放弃：模型一两分钟能回，三分钟还没回就当这次卡住了
 async function call(path, body) {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), 180000);
   let r;
   try {
     r = await fetch(API + path, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
+      signal: ctl.signal,
     });
   } catch {
-    throw new Error('连不上服务，检查一下网络');
+    throw new Error(ctl.signal.aborted ? '等了三分钟还没回话，这次卡住了' : '连不上服务，检查一下网络');
+  } finally {
+    clearTimeout(timer);
   }
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || `出错了（${r.status}）`);
+  if (!r.ok) {
+    // 中转自己报的错是中文大白话，直接给人看；中转没开口（超时、网关出错）就按状态码说人话
+    throw new Error(d.error || (
+      r.status === 429 ? '用的人有点多，等一分钟再试'
+      : [502, 503, 504, 524].includes(r.status) ? '模型这次没回话，多半是太忙'
+      : `服务出错了（${r.status}）`));
+  }
   return d;
+}
+
+// 该填的没填就点了出发：在第一站标题旁说一句，光标放回去
+function remind(S, input, text) {
+  S.stop('in', 'err', text);
+  input.focus();
+  input.addEventListener('input', () => unremind(S), { once: true });
+}
+function unremind(S) {
+  if (S.state('in') === 'err') S.stop('in', '');
+}
+// 出发后把下一站滚进视野，等待提示不至于落在屏幕外
+function reveal(li) {
+  const r = li.getBoundingClientRect();
+  if (r.top > innerHeight - 120 || r.bottom < 0) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 /* ---------- 切换两个 skill ---------- */
@@ -65,19 +92,21 @@ function panel(sel) {
       const e = li.querySelector('.live');
       if (e) e.textContent = live;
     },
+    state: (key) => $(`${sel} [data-stop="${key}"]`).dataset.state || '',
     fill(key, ...kids) {
       $(`${sel} [data-body="${key}"]`).replaceChildren(...kids.filter(Boolean));
     },
   };
 }
-const { stop, fill } = panel('#p-seed');
+const seed = panel('#p-seed');
+const { stop, fill } = seed;
 
 /* ---------- 种子选手：一句话出文案和海报 ---------- */
 loadFonts().then(() => document.body.classList.add('fonts-ok')).catch(() => {});
 
 const ask = $('#ask');
 document.querySelectorAll('[data-eg]').forEach((b) =>
-  b.addEventListener('click', () => { ask.value = b.dataset.eg; ask.focus(); }));
+  b.addEventListener('click', () => { ask.value = b.dataset.eg; ask.focus(); unremind(seed); }));
 
 // 没出发之前，最后一站先放一张示意海报，样式可以先点着看
 const poster = {
@@ -94,9 +123,14 @@ let busy = false;
 $('#ask-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const text = ask.value.trim();
-  if (!text || busy) return;
+  if (busy) return;
+  if (!text) return remind(seed, ask, '先写一句：哪店、哪天、几点');
   busy = true;
   $('#go').disabled = true;
+  // 上一轮还没画完的画面作废，回来也不往这一轮上贴
+  gen++;
+  pending = {};
+  finished = false;
   STOPS.forEach((k) => stop(k, ''));
   ['read', 'write', 'title', 'draw'].forEach((k) => fill(k));
   $('#copy').hidden = true;
@@ -112,9 +146,10 @@ $('#ask-form').addEventListener('submit', async (e) => {
   const tick = () => {
     const s = Math.round((Date.now() - t0) / 1000);
     stop('read', 'run', `已用 ${s} 秒`);
-    fill('read', el('p', 'wait', 'Gemini 4 正在读这句话，顺手把文案和标题一起写了。今天模型偏慢，一两分钟。'));
+    fill('read', el('p', 'wait', 'Gemini 4 正在读这句话，顺手把文案和标题一起写了。一般要一两分钟，读完下面几站会一个个盖章。'));
   };
   tick();
+  reveal($('#p-seed [data-stop="read"]'));
   const timer = setInterval(tick, 1000);
   try {
     const r = await call('/api/copy', { text });
@@ -199,6 +234,8 @@ for (const [id, key] of [['#tpl', 'tpl'], ['#size', 'size']]) {
     setSeg(id, b.dataset.v);
     poster[key] = b.dataset.v;
     redraw();
+    // 已经出过成品的，「排」站旁边的小字跟着换，不然还写着上一个样式
+    if (finished) stop('set', 'done', `${STYLE_NAME[poster.tpl]}，${poster.size}`);
     ensureImage();
   }));
 }
@@ -232,8 +269,9 @@ function showImage() {
   const scene = el('p', 'scene', `给 Nano Banana 2 的「${STYLE_NAME[tpl]}」画面描述：${poster.scene[kind] || ''}`);
   if (pending[tpl]) {
     stop('draw', 'run', `在画${STYLE_NAME[tpl]}`);
-    fill('draw', scene, el('p', 'wait', '正在画，十来秒。画里不放一个字，字全由程序排。'));
+    fill('draw', scene, el('p', 'wait', '正在画，十几二十秒。画里不放一个字，字全由程序排。'));
     if (!finished) route.go(4);
+    else stop('end', 'done', '画面画好会自动换上');
   } else if (poster.imgs[tpl]) {
     const img = el('img', 'thumb');
     img.src = poster.imgs[tpl].src;
@@ -276,36 +314,52 @@ async function ensureImage(force = false) {
 }
 $('#bg').addEventListener('click', () => ensureImage(true));
 
-// 保存：弹出图片，手机长按存，电脑点下载
+// 保存：弹出图片，手机长按存，电脑点下载。存成高质量 JPG：同一张图 PNG 有四五兆，发微信、手机存都慢
+let viewerUrl = '';
 function openViewer(cv, name) {
   cv.toBlob((blob) => {
-    const url = URL.createObjectURL(blob);
-    $('#viewer-img').src = url;
-    $('#viewer-dl').href = url;
+    if (viewerUrl) URL.revokeObjectURL(viewerUrl);
+    viewerUrl = URL.createObjectURL(blob);
+    $('#viewer-img').src = viewerUrl;
+    $('#viewer-dl').href = viewerUrl;
     $('#viewer-dl').download = name;
     $('#viewer').showModal();
-  }, 'image/png');
+  }, 'image/jpeg', 0.92);
 }
-$('#save').addEventListener('click', () => openViewer(canvas, `小屋海报-${poster.headline || '未命名'}-${poster.size.replace(':', 'x')}.png`));
+$('#save').addEventListener('click', () => openViewer(canvas, `小屋海报-${poster.headline || '未命名'}-${poster.size.replace(':', 'x')}.jpg`));
 $('#viewer-close').addEventListener('click', () => $('#viewer').close());
+// 点弹窗外面的暗处也能关
+$('#viewer').addEventListener('click', (e) => {
+  const d = e.currentTarget;
+  const r = d.getBoundingClientRect();
+  const out = e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+  if (e.target === d && out) d.close();
+});
 
-// 复制
+// 复制：先用老办法（在点击当下同步完成，微信内置浏览器也认），不行再用剪贴板接口
 async function copyToClipboard(t) {
+  const ta = Object.assign(document.createElement('textarea'), { value: t, readOnly: true });
+  ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;pointer-events:none';
+  document.body.append(ta);
+  ta.select();
+  ta.setSelectionRange(0, t.length);
+  let ok = false;
+  try { ok = document.execCommand('copy'); } catch { /* 有的浏览器直接抛错 */ }
+  ta.remove();
+  if (ok) return true;
   try {
     await navigator.clipboard.writeText(t);
+    return true;
   } catch {
-    // 微信内置浏览器有时不给剪贴板权限，退回老办法
-    const ta = Object.assign(document.createElement('textarea'), { value: t });
-    document.body.append(ta);
-    ta.select();
-    document.execCommand('copy');
-    ta.remove();
+    return false;
   }
 }
-function flash(b, text = '已复制') {
-  const old = b.textContent;
-  b.textContent = text;
-  setTimeout(() => (b.textContent = old), 1500);
+// 按钮上闪一下结果再变回原字；连点也不会把「已复制」当成原字记下来
+function flash(b, ok) {
+  b.dataset.label ??= b.textContent;
+  b.textContent = ok ? '已复制' : '没复制上，长按文字自己复制';
+  clearTimeout(b._t);
+  b._t = setTimeout(() => (b.textContent = b.dataset.label), ok ? 1500 : 3000);
 }
 const copyText = {
   teaser: () => $('#teaser').textContent,
@@ -313,8 +367,7 @@ const copyText = {
   short: () => $('#short').textContent,
 };
 document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', async () => {
-  await copyToClipboard(copyText[b.dataset.copy]());
-  flash(b);
+  flash(b, await copyToClipboard(copyText[b.dataset.copy]()));
 }));
 
 /* ---------- 歌手：歌词 → 读懂、Suno 包、三张分镜、一张歌词海报（编曲小样等 Suno 接口） ---------- */
@@ -333,7 +386,12 @@ $('#song-eg').addEventListener('click', () => {
   $('#song-name').value = '长路';
   $('#song-lyrics').value = '走了很多路 看过很多灯\n没有一盏 是为我亮的\n背着吉他 走过陌生的城\n风把名字吹散 也没人问\n\n别问我去哪儿\n风吹到哪儿 就是哪儿\n别问我回不回\n路还长 我还没走累\n\n火塘边的人 换了一茬又一茬\n歌还是那首 唱给谁听都一样';
   $('#song-feel').value = '木吉他、口琴、慢，像深夜在路上';
-  $('#song-lyrics').focus();
+  const ly = $('#song-lyrics');
+  ly.focus();
+  // 光标放回开头，歌词框从第一行显示，不要一进来就滚到最后一行
+  ly.setSelectionRange(0, 0);
+  ly.scrollTop = 0;
+  unremind(S);
 });
 
 let songBusy = false;
@@ -341,7 +399,8 @@ let songGen = 0;
 $('#song-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const lyrics = $('#song-lyrics').value.trim();
-  if (!lyrics || songBusy) return;
+  if (songBusy) return;
+  if (!lyrics) return remind(S, $('#song-lyrics'), $('#song-name').value.trim() ? '还差歌词：歌名可以不填，歌词得有' : '先把歌词贴进来');
   songBusy = true;
   $('#song-go').disabled = true;
   const g = ++songGen;
@@ -359,9 +418,10 @@ $('#song-form').addEventListener('submit', async (e) => {
   const t0 = Date.now();
   const tick = () => {
     S.stop('read', 'run', `已用 ${Math.round((Date.now() - t0) / 1000)} 秒`);
-    S.fill('read', el('p', 'wait', 'Gemini 4 正在读这首歌：分段、听情绪、写风格词，顺手把海报字和分镜也想好。一两分钟。'));
+    S.fill('read', el('p', 'wait', 'Gemini 4 正在读这首歌：分段、听情绪、写风格词，顺手把海报字和分镜也想好。一般要一两分钟。'));
   };
   tick();
+  reveal($('#p-singer [data-stop="read"]'));
   const timer = setInterval(tick, 1000);
   try {
     const r = await call('/api/song', { name, lyrics, feel: $('#song-feel').value.trim() });
@@ -401,7 +461,7 @@ async function songArrive(r, g) {
   const cp = (text, label) => {
     const b = el('button', 'quiet', label);
     b.type = 'button';
-    b.addEventListener('click', async () => { await copyToClipboard(text); flash(b); });
+    b.addEventListener('click', async () => flash(b, await copyToClipboard(text)));
     return b;
   };
   pack.append(
@@ -475,4 +535,4 @@ async function songArrive(r, g) {
     S.stop('end', 'done', '没底图也排好了');
   }
 }
-$('#song-save').addEventListener('click', () => openViewer(songCanvas, `歌词海报-${song.headline || '未命名'}-9x16.png`));
+$('#song-save').addEventListener('click', () => openViewer(songCanvas, `歌词海报-${song.headline || '未命名'}-9x16.jpg`));

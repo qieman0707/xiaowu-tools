@@ -40,11 +40,15 @@ async function gemini(env, model, payload) {
   });
   const d = await r.json().catch(() => ({}));
   if (!r.ok) {
-    const msg = d.error?.message || `Gemini 返回 ${r.status}`;
+    const msg = d.error?.message || '';
+    // 页面是给大冰看的，英文原样甩出去他看不懂：常见几种翻成人话，其余只报状态码
     const err = new Error(
       /spending cap/i.test(msg) ? 'Gemini 本月额度用完了，请小陈去 AI Studio 调高上限'
       : /location is not supported/i.test(msg) ? 'Gemini 不支持当前出口地区（中转节点问题）'
-      : msg,
+      : r.status === 429 ? '用的人有点多，等一分钟再试'
+      : r.status === 503 || /overloaded|unavailable/i.test(msg) ? 'Gemini 这会儿太忙，过一会儿再点'
+      : /safety|blocked/i.test(msg) ? '这次的内容被模型拦下了，换个说法试试'
+      : `Gemini 出错了（${r.status}），再点一次试试`,
     );
     err.status = r.status === 429 ? 429 : 502;
     throw err;
@@ -83,10 +87,17 @@ async function song(env, { name, lyrics, feel }) {
   if (lyrics.length > 3000) throw Object.assign(new Error('歌词太长了，3000 字以内'), { status: 400 });
   const text = [name && `歌名：${name}`, feel && `想要的感觉：${feel}`, `歌词：\n${lyrics}`].filter(Boolean).join('\n\n');
   const r = await askJson(env, SONG, text, 0.7);
-  // 歌词一个字不改：Suno 包里的歌词行必须都来自原文，有改动就退回原文分段
-  const orig = new Set(lyrics.split('\n').map((s) => s.trim()).filter(Boolean));
-  const ok = String(r.suno_lyrics || '').split('\n').map((s) => s.trim()).filter((s) => s && !/^\[.+\]$/.test(s)).every((s) => orig.has(s));
-  if (!ok) r.suno_lyrics = lyrics.split(/\n\s*\n/).map((p, i) => `[${i === 0 ? 'Verse' : 'Chorus'}]\n${p.trim()}`).join('\n\n');
+  // 歌词一个字不改：去掉段落标签后，Suno 包里的歌词必须和原文逐行一模一样（不改、不加、不删、不换顺序），否则退回原文分段
+  const orig = lyrics.split('\n').map((s) => s.trim()).filter(Boolean);
+  const got = String(r.suno_lyrics || '').split('\n').map((s) => s.trim()).filter((s) => s && !/^\[.+\]$/.test(s));
+  const ok = got.length === orig.length && got.every((s, i) => s === orig[i]);
+  if (!ok) {
+    // 退回时段落标签尽量沿用模型读出来的段名（主歌/副歌…），对不上段数就都标主歌
+    const paras = lyrics.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+    const TAG = { 主歌: 'Verse', 副歌: 'Chorus', 桥段: 'Bridge', 结尾: 'Outro', 前奏: 'Intro' };
+    const names = (r.parts || []).length === paras.length ? r.parts.map((p) => TAG[p.name] || 'Verse') : [];
+    r.suno_lyrics = paras.map((p, i) => `[${names[i] || 'Verse'}]\n${p}`).join('\n\n');
+  }
   return r;
 }
 

@@ -59,7 +59,7 @@ button, input, textarea { font: inherit; color: inherit; }
 .hero {
   position: relative; min-height: 100svh;
   display: grid; grid-template-rows: 1fr auto auto; align-content: end;
-  padding: 96px var(--side) 56px;
+  padding: 96px var(--side) 32px;
   background: url("assets/ink-wide.jpg") center bottom / cover no-repeat;
 }
 /* 底部渐入纸色，画不和下面的路打架 */
@@ -77,10 +77,10 @@ button, input, textarea { font: inherit; color: inherit; }
 .giant span:nth-child(2) { --i: 14; }
 .giant span:nth-child(4) { --i: 10; }
 .giant span:nth-child(5) { --i: -6; }
-.hero-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; margin-bottom: 6vh; }
-.lede { margin: 0; max-width: 34em; font-size: 17px; line-height: 1.9; color: var(--ink); }
+.hero-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 32px; margin-bottom: 4vh; }
+.lede { margin: 0; max-width: 34em; font-size: 17px; line-height: 1.9; color: var(--ink); text-wrap: pretty; }
 .vert {
-  margin: 0; writing-mode: vertical-rl; height: 11em; font-size: 15px; line-height: 2.1; letter-spacing: .08em; color: var(--ink-2);
+  margin: 0; writing-mode: vertical-rl; font-size: 15px; line-height: 2.1; letter-spacing: .08em; color: var(--ink-2);
 }
 
 /* ---------- 一条竖路：左边印章连成路，右边每站一张卡 ---------- */
@@ -150,7 +150,7 @@ label.file { font: 400 14px/1.6 var(--body); color: var(--ink-2); flex: 1; min-w
 .quiet:disabled { opacity: .35; cursor: not-allowed; }
 
 /* ---------- 沿路产出 ---------- */
-.body p { margin: 0; font-size: 16px; }
+.body p { margin: 0; font-size: 16px; text-wrap: pretty; }
 .body p + p { margin-top: 6px; }
 .facts { display: flex; flex-wrap: wrap; gap: 8px; }
 .fact { border: 1px solid var(--hair); border-radius: 3px; padding: 2px 10px; font-size: 14px; }
@@ -161,7 +161,7 @@ label.file { font: 400 14px/1.6 var(--body); color: var(--ink-2); flex: 1; min-w
 .wait { color: var(--cinnabar); }
 .err { color: var(--cinnabar); }
 .big { font: 400 56px/1.15 var(--brush) !important; color: var(--cinnabar-deep); }
-.pinyin { font: italic 400 14px/1.5 var(--xing) !important; letter-spacing: .12em; color: var(--ink-2); }
+.pinyin { font: italic 600 15px/1.5 var(--serif) !important; letter-spacing: .12em; color: var(--ink-2); }
 .scene { font-size: 14px !important; color: var(--ink-2); overflow-wrap: anywhere; max-width: 42em; }
 .thumb { display: block; width: 140px; margin-top: 12px; box-shadow: 0 8px 24px rgba(42, 37, 33, .25); }
 .poster-act { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
@@ -187,11 +187,12 @@ label.file { font: 400 14px/1.6 var(--body); color: var(--ink-2); flex: 1; min-w
 .seg { display: flex; gap: 6px; }
 .seg button { appearance: none; cursor: pointer; background: transparent; border: 0; padding: 6px 10px; font: 600 16px/1.3 var(--serif); letter-spacing: .06em; color: var(--ink-2); }
 .seg [aria-checked="true"] { color: var(--ink); box-shadow: inset 0 -2px var(--cinnabar); }
-.stage { display: grid; place-items: center; padding: 8px 0; }
+/* 海报靠左，和卡片里其他东西、下面的「保存海报」对齐 */
+.stage { display: grid; justify-items: start; padding: 8px 0; }
 .stage canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 82vh; box-shadow: 0 30px 70px rgba(42, 37, 33, .35); }
 
 /* 歌手那边每站的说明 */
-.plan { margin: 0; font-size: 16px; color: var(--ink-2); max-width: 36em; }
+.plan { margin: 0; font-size: 16px; color: var(--ink-2); max-width: 36em; text-wrap: pretty; }
 
 .foot { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 28px var(--side) 40px; border-top: 1px solid var(--hair); font-size: 13px; letter-spacing: .08em; color: var(--ink-2); }
 
@@ -212,6 +213,7 @@ dialog .go { width: auto; height: auto; padding: 10px 24px; font: 600 16px/1.3 v
   .giant { margin-bottom: 2vh; }
   .hero-foot { flex-direction: column; align-items: flex-start; margin-bottom: 4vh; }
   .vert { writing-mode: horizontal-tb; height: auto; }
+  .vert br.v { display: none; }
   .route { gap: 34px; padding-bottom: 64px; }
   .seal { font-size: 28px; border-radius: 5px; }
   .card { padding-top: 2px; }
@@ -230,14 +232,17 @@ dialog .go { width: auto; height: auto; padding: 10px 24px; font: 600 16px/1.3 v
 
 /* ---------- 歌手那页：分段、风格词、Suno 包、分镜 ---------- */
 .hook { font: 400 34px/1.3 var(--brush) !important; color: var(--cinnabar-deep); margin-top: 10px !important; }
+/* 大字句子：歌词按空格分句，只在空格处换行、两行上下匀开，一句太长没空格才随便断（要压过上面 .body p 的 pretty） */
+.body .big, .body .hook { text-wrap: balance; word-break: keep-all; overflow-wrap: anywhere; }
 .parts { display: grid; gap: 6px; margin-top: 12px; }
 .part { font-size: 15px !important; color: var(--ink-2); }
 .part b { font-weight: 600; color: var(--ink); margin-right: 8px; }
 .pack { margin-top: 14px; max-width: 36em; }
 .pack h3 { margin: 14px 0 6px; font: 600 15px/1.4 var(--serif); letter-spacing: .1em; color: var(--ink-2); }
 .pack pre { margin: 0 0 10px; white-space: pre-wrap; font: 15px/1.8 var(--body); border-left: 2px solid var(--hair); padding-left: 12px; }
-.frames { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 12px; }
-.frames img { width: 96px; aspect-ratio: 9 / 16; object-fit: cover; cursor: pointer; opacity: .72; box-shadow: 0 8px 24px rgba(42, 37, 33, .25); transition: opacity .2s; }
+/* 三张分镜永远一排：宽屏每张 96px，窄屏按卡片宽度三等分 */
+.frames { display: grid; grid-template-columns: repeat(3, minmax(0, 96px)); gap: 12px; margin-top: 12px; }
+.frames img { display: block; width: 100%; aspect-ratio: 9 / 16; object-fit: cover; cursor: pointer; opacity: .72; box-shadow: 0 8px 24px rgba(42, 37, 33, .25); transition: opacity .2s; }
 .frames img:hover, .frames img.on { opacity: 1; }
 .frames img.on { outline: 2px solid var(--cinnabar); outline-offset: 3px; }
-.frames .slot { width: 96px; aspect-ratio: 9 / 16; border: 1.5px dashed var(--hair); display: grid; place-items: center; font-size: 13px; color: var(--cinnabar); }
+.frames .slot { width: 100%; aspect-ratio: 9 / 16; border: 1.5px dashed var(--hair); display: grid; place-items: center; font-size: 13px; color: var(--cinnabar); }

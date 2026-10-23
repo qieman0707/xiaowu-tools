@@ -9,7 +9,7 @@
 <link rel="preload" href="fonts/brush.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/serif.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/ink-wide.jpg" as="image">
-<link rel="stylesheet" href="style.css?v=20261023d">
+<link rel="stylesheet" href="style.css?v=20261023j">
 </head>
 <body>
 <!-- 顶栏压在画面上：左边落款，右边两个 skill 的切换 -->
@@ -31,7 +31,7 @@
         <h1 class="giant" aria-label="小屋工具台"><span>小</span><span>屋</span><span>工</span><span>具</span><span>台</span></h1>
         <div class="hero-foot">
           <p class="lede">一句话，出一张海报和三份文案。<br>从这里往下走，每一站出的东西就落在那一站。</p>
-          <p class="vert">不冒充大冰，不编任何人的话。<br>只写你给的事实，缺了就列出来。</p>
+          <p class="vert">不冒充大冰，<br class="v">不编任何人的话。<br>只写你给的事实，<br class="v">缺了就列出来。</p>
         </div>
 
         <div class="stop first" data-stop="in">
@@ -167,7 +167,7 @@
         <h1 class="giant" aria-label="小屋工具台"><span>小</span><span>屋</span><span>工</span><span>具</span><span>台</span></h1>
         <div class="hero-foot">
           <p class="lede">贴上你写的歌词，出风格词、三张分镜和一张歌词海报。<br>编曲小样要等 Suno 接口；接上之前，这里先把要粘给 Suno 的东西备好。</p>
-          <p class="vert">歌词一个字不改。<br>不冒充大冰，不编你的故事。</p>
+          <p class="vert">歌词一个字不改。<br>不冒充大冰，<br class="v">不编你的故事。</p>
         </div>
 
         <div class="stop first" data-stop="in">
@@ -176,7 +176,7 @@
             <h2>歌词<small>歌名和想要的感觉可以不填</small><em class="live"></em></h2>
             <form id="song-form" class="ask">
               <input id="song-name" maxlength="30" aria-label="歌名" placeholder="歌名">
-              <textarea id="song-lyrics" rows="6" maxlength="3000" aria-label="你写的歌词" placeholder="一段一段写，段与段之间空一行"></textarea>
+              <textarea id="song-lyrics" rows="4" maxlength="3000" aria-label="你写的歌词" placeholder="一段一段写，段与段之间空一行"></textarea>
               <input id="song-feel" maxlength="60" aria-label="想要什么感觉" placeholder="想要什么感觉：木吉他、口琴、慢，像深夜在路上">
               <div class="ask-foot">
                 <div class="chips" aria-label="试一首">
@@ -254,6 +254,6 @@
   </div>
 </dialog>
 
-<script type="module" src="app.js?v=20261023d"></script>
+<script type="module" src="app.js?v=20261023j"></script>
 </body>
 </html>
