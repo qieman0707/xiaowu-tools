@@ -20,7 +20,7 @@
   - `src/voice.js`：小屋口吻卡。只放有出处的原话（出处在私有仓库 `qieman0707/folk-poster-research` 的 `dabing-xiaowu-detailed.md`），新增必须带出处
   - 密钥：`npx wrangler secret put GEMINI_API_KEY`（以前的 `INVITE_CODES` 已不用）
   - 发布：`cd worker && npx wrangler deploy`
-- 网页发布：仓库 `qieman0707/xiaowu-tools` 10-23 还没建（agent 建公开仓被权限拦）。建法：`gh repo create qieman0707/xiaowu-tools --public --source . --push`，再 `gh api -X POST repos/qieman0707/xiaowu-tools/pages -f build_type=legacy -f 'source[branch]=main' -f 'source[path]=/docs'`，站点 `https://qieman0707.github.io/xiaowu-tools/`，中转 CORS 已放行这个域
+- 网页发布：公开仓库 `qieman0707/xiaowu-tools`，GitHub Pages 从 `main` 的 `docs/` 发布，站点 `https://qieman0707.github.io/xiaowu-tools/`（10-23 小陈说「发布吧」后建的）。以后改完 `git push` 即发布，一两分钟生效
 - 编曲试过 MiniMax 音乐接口（密钥库里有 key）：海外 key 无效，国内站 2026-08-20 起不对新用户开放，走不通；别再试，等 Suno
 
 ## 规矩
