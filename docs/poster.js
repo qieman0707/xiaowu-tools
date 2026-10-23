@@ -37,7 +37,7 @@ export async function drawPoster(canvas, p) {
 
 /* ---------- 远方：满版风景，两行错落的白色飞白大字，黄色行书副标斜压 ---------- */
 function yuanfang(ctx, W, H, p) {
-  if (p.bgImg) cover(ctx, p.bgImg, 0, 0, W, H);
+  if (p.bgImg) cover(ctx, p.bgImg, 0, 0, W, H, 1.06);
   else {
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, '#c98a5e');
@@ -133,7 +133,7 @@ function heibai(ctx, W, H, p) {
   ctx.rect(m, m, W - 2 * m, ph);
   ctx.clip();
   if (p.bgImg) {
-    cover(ctx, p.bgImg, m, m, W - 2 * m, ph);
+    cover(ctx, p.bgImg, m, m, W - 2 * m, ph, 1.06);
     mono(ctx, m, m, W - 2 * m, ph);
   } else {
     const g = ctx.createRadialGradient(W * 0.55, m + ph * 0.45, 0, W * 0.55, m + ph * 0.45, ph * 0.8);
@@ -345,8 +345,9 @@ function shortDate(lines) {
   return '';
 }
 
-function cover(ctx, img, x, y, w, h) {
-  const s = Math.max(w / img.width, h / img.height);
+// 铺满一块区域；zoom 稍大于 1 是把四边裁掉一点——生图模型偶尔自带一圈细边框，满版海报上会露出来
+function cover(ctx, img, x, y, w, h, zoom = 1) {
+  const s = Math.max(w / img.width, h / img.height) * zoom;
   ctx.drawImage(img, x + (w - img.width * s) / 2, y + (h - img.height * s) / 2, img.width * s, img.height * s);
 }
 

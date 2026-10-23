@@ -113,7 +113,7 @@ async function image(env, { style, scene, aspect }) {
   scene = String(scene || '').trim().slice(0, 300);
   if (!look || !scene) throw Object.assign(new Error('缺画面描述'), { status: 400 });
   const d = await gemini(env, env.IMAGE_MODEL, {
-    contents: [{ role: 'user', parts: [{ text: `${look(scene)}\nAbsolutely no text, letters, numbers, logos or watermarks anywhere in the image.` }] }],
+    contents: [{ role: 'user', parts: [{ text: `${look(scene)}\nFull-bleed image that fills the whole canvas edge to edge: no border, no frame, no white margin, no vignette edge.\nAbsolutely no text, letters, numbers, logos or watermarks anywhere in the image.` }] }],
     generationConfig: { responseModalities: ['IMAGE'], imageConfig: { aspectRatio: aspect === '9:16' ? '9:16' : '3:4' } },
   });
   const part = (d.candidates?.[0]?.content?.parts || []).find((p) => p.inlineData);
