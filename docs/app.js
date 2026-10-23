@@ -1,5 +1,5 @@
-import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023j';
-import { makeRoute } from './route.js?v=20261023j';
+import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023m';
+import { makeRoute } from './route.js?v=20261023m';
 
 // ?api= 只在本机预览时认，线上一律走固定中转，免得别人拿链接把人导去假接口
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
@@ -303,6 +303,9 @@ async function ensureImage(force = false) {
       route.idle();
       stop('draw', 'err', '没画出来');
       fill('draw', el('p', 'err', `${err.message}。点「换一张画面」再试。`));
+      // 没画面海报也排好了（用底色），照样能存；不想等就换「唱片」，那个不用画
+      stop('set', 'done', `${STYLE_NAME[tpl]}，${poster.size}`);
+      stop('end', 'done', '先用底色排好了，也能存；换「唱片」不用画面');
       $('#bg').disabled = false;
       $('#bg').textContent = '换一张画面';
       return;
@@ -488,51 +491,67 @@ async function songArrive(r, g) {
   $('#song-save').disabled = false;
   S.stop('end', 'run', '等分镜当底图');
 
-  // 画：三张分镜一起画，谁先好谁先亮；点哪张，海报就用哪张当底图
+  // 画：三张分镜一起画，谁先好谁先亮；点哪张，海报就用哪张当底图。
+  // 没画出来的可以单独重画，不用重新出发再读一两分钟歌词
   const row = el('div', 'frames');
   const slots = song.frames.map((_, i) => { const s = el('div', 'slot', `第 ${i + 1} 张`); row.append(s); return s; });
-  S.stop('draw', 'run', `在画 ${song.frames.length} 张分镜`);
-  S.fill('draw', el('p', 'dim', '主歌、副歌、结尾各一张，同一种画风。画里不放字。'), row);
-  route2.go(4);
+  const note = el('p', 'dim', '主歌、副歌、结尾各一张，同一种画风。画里不放字。');
+  const retry = el('button', 'quiet', '重画没出来的分镜');
+  retry.type = 'button';
+  retry.hidden = true;
+  S.fill('draw', note, row, el('div', 'poster-act', retry));
   const mark = () => row.querySelectorAll('img').forEach((m) => m.classList.toggle('on', m.dataset.i == song.pick));
-  let okCount = 0;
-  let picked = false;
-  await Promise.all(song.frames.map(async (scene, i) => {
-    try {
-      const x = await call('/api/image', { style: 'yuanfang', scene, aspect: '9:16' });
-      if (g !== songGen) return;
-      const img = new Image();
-      img.src = `data:${x.mime};base64,${x.data}`;
-      await img.decode();
-      if (g !== songGen) return;
-      song.imgs[i] = img;
-      const t = el('img');
-      t.src = img.src;
-      t.alt = `分镜 ${i + 1}`;
-      t.dataset.i = i;
-      t.addEventListener('click', () => { song.pick = i; mark(); songRedraw(); });
-      slots[i].replaceWith(t);
-      okCount++;
-      if (!picked) {
-        picked = true;
-        song.pick = i;
-        songRedraw();
-        S.stop('end', 'done', '歌词海报，可以发了');
-        route2.reach(6);
+  const paint = async () => {
+    const todo = song.frames.map((_, i) => i).filter((i) => !song.imgs[i]);
+    retry.hidden = true;
+    todo.forEach((i) => (slots[i].textContent = `第 ${i + 1} 张`));
+    S.stop('draw', 'run', `在画 ${todo.length} 张分镜`);
+    if (!song.imgs.some(Boolean)) route2.go(4);
+    await Promise.all(todo.map(async (i) => {
+      try {
+        const x = await call('/api/image', { style: 'yuanfang', scene: song.frames[i], aspect: '9:16' });
+        if (g !== songGen) return;
+        const img = new Image();
+        img.src = `data:${x.mime};base64,${x.data}`;
+        await img.decode();
+        if (g !== songGen) return;
+        const first = !song.imgs.some(Boolean);
+        song.imgs[i] = img;
+        const t = el('img');
+        t.src = img.src;
+        t.alt = `分镜 ${i + 1}`;
+        t.dataset.i = i;
+        t.addEventListener('click', () => { song.pick = i; mark(); songRedraw(); });
+        slots[i].replaceWith(t);
+        // 第一张画好的先当底图
+        if (first) {
+          song.pick = i;
+          songRedraw();
+          S.stop('end', 'done', '歌词海报，可以发了');
+          route2.reach(6);
+        }
+        mark();
+      } catch {
+        if (g === songGen) slots[i].textContent = '没画出来';
       }
-      mark();
-    } catch {
-      if (g === songGen) slots[i].textContent = '没画出来';
+    }));
+    if (g !== songGen) return;
+    const ok = song.imgs.filter(Boolean).length;
+    const bad = song.frames.length - ok;
+    retry.hidden = !bad;
+    if (ok) {
+      note.className = 'dim';
+      note.textContent = '主歌、副歌、结尾各一张，同一种画风。画里不放字。点哪张，海报就换哪张当底图。';
+      S.stop('draw', 'done', bad ? `画好 ${ok} 张，${bad} 张没画出来` : `${ok} 张分镜画好了`);
+    } else {
+      route2.idle();
+      note.className = 'err';
+      note.textContent = '这次一张都没画出来，多半是模型太忙。点下面重画，不用重新出发。';
+      S.stop('draw', 'err', '没画出来');
+      S.stop('end', 'done', '没底图也排好了，也能存');
     }
-  }));
-  if (g !== songGen) return;
-  if (okCount) {
-    S.stop('draw', 'done', `${okCount} 张分镜画好了`);
-  } else {
-    route2.idle();
-    S.stop('draw', 'err', '没画出来');
-    S.fill('draw', el('p', 'err', '这次一张都没画出来。再点一次出发。'), row);
-    S.stop('end', 'done', '没底图也排好了');
-  }
+  };
+  retry.addEventListener('click', paint);
+  await paint();
 }
 $('#song-save').addEventListener('click', () => openViewer(songCanvas, `歌词海报-${song.headline || '未命名'}-9x16.jpg`));
