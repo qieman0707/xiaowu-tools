@@ -11,7 +11,7 @@
 <link rel="preload" href="fonts/brush.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="fonts/serif.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/ink-wide.jpg" as="image">
-<link rel="stylesheet" href="style.css?v=20261023t">
+<link rel="stylesheet" href="style.css?v=20261023u">
 </head>
 <body id="top">
 <!-- 顶栏压在画面上：左边落款，右边两个 skill 的切换 -->
@@ -150,6 +150,16 @@
               <canvas id="poster" width="1080" height="1440" aria-label="海报预览"></canvas>
               <div class="aside"><p class="dim">手机长按存图，电脑点下载。<br>文案在上面「写」那站，各有复制。</p><div class="poster-act"><button type="button" id="save" class="quiet" disabled>保存海报</button></div></div>
             </div>
+            <div class="suite" id="suite" hidden>
+              <p class="dim">同一句话，四种样式一起出。点哪张，上面就换哪张。</p>
+              <div class="suite-row">
+                <figure data-tpl="yuanfang"><canvas width="1080" height="1440" aria-label="远方样式"></canvas><figcaption>远方</figcaption></figure>
+                <figure data-tpl="heibai"><canvas width="1080" height="1440" aria-label="黑白样式"></canvas><figcaption>黑白</figcaption></figure>
+                <figure data-tpl="jianghu"><canvas width="1080" height="1440" aria-label="江湖样式"></canvas><figcaption>江湖</figcaption></figure>
+                <figure data-tpl="changpian"><canvas width="1080" height="1440" aria-label="唱片样式"></canvas><figcaption>唱片</figcaption></figure>
+              </div>
+              <div class="poster-act"><button type="button" id="save-all" class="quiet">保存整套，一张长图</button></div>
+            </div>
           </div>
         </li>
 
@@ -224,8 +234,9 @@
         <li class="stop" data-stop="mix" data-state="wait">
           <span class="seal">合</span>
           <div class="card">
-            <h2>合成竖屏 MV<small>等小样</small></h2>
-            <p class="plan">画面、小样、逐句毛笔字幕拼成 9:16 视频，发抖音、视频号。</p>
+            <h2>合成竖屏 MV<small>先出无声的分镜动画，小样接上再合声</small><em class="live"></em></h2>
+            <p class="plan">画面、歌词、小样拼成 9:16 视频，发抖音、视频号。现在先把画面和歌词动起来。</p>
+            <div class="body" data-body="mix"></div>
           </div>
         </li>
         <li class="stop" data-stop="end">
@@ -243,6 +254,24 @@
   </section>
 </main>
 
+<!-- 下一站：这张工具台往哪走。只写真话：通了的、等接口的、想做还没动手的 -->
+<section class="next" aria-label="下一站">
+  <div class="next-head">
+    <h2 class="next-title">下一站</h2>
+    <p class="lede">这张工具台不止两样。小屋的事，往后都想做成一句话的事。</p>
+  </div>
+  <ul class="next-list">
+    <li data-state="done"><span class="seal">海</span><div><b>一句话，出海报和文案</b><small>通了</small></div></li>
+    <li data-state="done"><span class="seal">词</span><div><b>歌词，出分镜和歌词海报</b><small>通了</small></div></li>
+    <li data-state="run"><span class="seal">曲</span><div><b>编曲小样，歌词对上时间</b><small>等 Suno 接上</small></div></li>
+    <li data-state="run"><span class="seal">影</span><div><b>分镜动画合上小样，成 MV</b><small>画面先动起来了</small></div></li>
+    <li><span class="seal">校</span><div><b>百城百校：一场音乐会，一套物料</b><small>想做</small></div></li>
+    <li><span class="seal">历</span><div><b>分舵活动日历，到点自动出预告</b><small>想做</small></div></li>
+    <li><span class="seal">名</span><div><b>歌手名片页，一人一页</b><small>想做</small></div></li>
+    <li><span class="seal">剪</span><div><b>现场视频，自动切成竖屏短片</b><small>想做</small></div></li>
+  </ul>
+</section>
+
 <footer class="foot">
   <span>大冰的小屋 · 工具台</span>
 </footer>
@@ -256,6 +285,6 @@
   </div>
 </dialog>
 
-<script type="module" src="app.js?v=20261023t"></script>
+<script type="module" src="app.js?v=20261023u"></script>
 </body>
 </html>

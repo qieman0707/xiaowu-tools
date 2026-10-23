@@ -1,5 +1,6 @@
-import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023t';
-import { makeRoute } from './route.js?v=20261023t';
+import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023u';
+import { makeRoute } from './route.js?v=20261023u';
+import { planShots, recordMv } from './mv.js?v=20261023u';
 
 // ?api= 只在本机预览时认，线上一律走固定中转，免得别人拿链接把人导去假接口
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
@@ -118,7 +119,36 @@ const poster = {
   lines: ['日期 时间', '哪家分舵'], branch: '', seal: '小屋', scene: {}, imgs: {},
 };
 const canvas = $('#poster');
-const redraw = () => drawPoster(canvas, { ...poster, bgImg: poster.imgs[poster.tpl] });
+const redraw = () => { drawPoster(canvas, { ...poster, bgImg: poster.imgs[poster.tpl] }); queueSuite(); };
+// 整套：四种样式各一张小图，主海报一改它们跟着改
+const suite = $('#suite');
+let suiteTimer = 0;
+function queueSuite() {
+  if (suite.hidden) return;
+  clearTimeout(suiteTimer);
+  suiteTimer = setTimeout(drawSuite, 250);
+}
+function drawSuite() {
+  suite.querySelectorAll('figure').forEach((f) => {
+    const tpl = f.dataset.tpl;
+    f.classList.toggle('on', tpl === poster.tpl);
+    drawPoster(f.querySelector('canvas'), { ...poster, tpl, bgImg: poster.imgs[tpl] });
+  });
+}
+suite.querySelectorAll('figure').forEach((f) => f.addEventListener('click', () => pickStyle(f.dataset.tpl)));
+// 四张拼一张长图：纸色底，四张并排
+$('#save-all').addEventListener('click', () => {
+  const cs = [...suite.querySelectorAll('canvas')];
+  const W = cs[0].width, H = cs[0].height, gap = 48, pad = 72;
+  const sheet = document.createElement('canvas');
+  sheet.width = pad * 2 + W * cs.length + gap * (cs.length - 1);
+  sheet.height = pad * 2 + H;
+  const ctx = sheet.getContext('2d');
+  ctx.fillStyle = '#eae4d6';
+  ctx.fillRect(0, 0, sheet.width, sheet.height);
+  cs.forEach((c, i) => ctx.drawImage(c, pad + i * (W + gap), pad));
+  openViewer(sheet, `小屋海报-整套-${poster.headline || '未命名'}.jpg`);
+});
 redraw();
 setSeg('#tpl', poster.tpl);
 
@@ -219,8 +249,11 @@ async function arrive(r) {
   $('#f-lines').value = poster.lines.join('\n');
   $('#edit').hidden = false;
   $('#save').disabled = false;
+  suite.hidden = false;
   redraw();
+  // 远方、黑白、江湖三张画面一起要，整套海报一起出；当前选的那张先显示
   ensureImage();
+  for (const tpl of ['heibai', 'jianghu']) fetchImage(tpl);
 }
 
 // 改字即时重画
@@ -232,16 +265,22 @@ $('#f-lines').addEventListener('input', (e) => { poster.lines = e.target.value.s
 function setSeg(id, v) {
   document.querySelectorAll(`${id} [role="radio"]`).forEach((x) => x.setAttribute('aria-checked', x.dataset.v === v));
 }
-for (const [id, key] of [['#tpl', 'tpl'], ['#size', 'size']]) {
-  document.querySelectorAll(`${id} [role="radio"]`).forEach((b) => b.addEventListener('click', () => {
-    setSeg(id, b.dataset.v);
-    poster[key] = b.dataset.v;
-    redraw();
-    // 已经出过成品的，「排」站旁边的小字跟着换，不然还写着上一个样式
-    if (finished) stop('set', 'done', `${STYLE_NAME[poster.tpl]}，${poster.size}`);
-    ensureImage();
-  }));
+function pickStyle(v) {
+  setSeg('#tpl', v);
+  poster.tpl = v;
+  redraw();
+  // 已经出过成品的，「排」站旁边的小字跟着换，不然还写着上一个样式
+  if (finished) stop('set', 'done', `${STYLE_NAME[poster.tpl]}，${poster.size}`);
+  ensureImage();
 }
+document.querySelectorAll('#tpl [role="radio"]').forEach((b) => b.addEventListener('click', () => pickStyle(b.dataset.v)));
+document.querySelectorAll('#size [role="radio"]').forEach((b) => b.addEventListener('click', () => {
+  setSeg('#size', b.dataset.v);
+  poster.size = b.dataset.v;
+  redraw();
+  if (finished) stop('set', 'done', `${STYLE_NAME[poster.tpl]}，${poster.size}`);
+  ensureImage();
+}));
 
 /* ---------- 画、排、成三站：远方 / 黑白 / 江湖要一张 AI 画面，切到哪个样式画哪张，画过的留着；唱片不用画 ---------- */
 const STYLE_NAME = { yuanfang: '远方', heibai: '黑白', jianghu: '江湖', changpian: '唱片' };
@@ -285,8 +324,8 @@ function showImage() {
   }
 }
 
-async function ensureImage(force = false) {
-  const tpl = poster.tpl;
+const ensureImage = (force = false) => fetchImage(poster.tpl, force);
+async function fetchImage(tpl, force = false) {
   const scene = poster.scene[NEEDS_IMAGE[tpl]];
   if (!scene || pending[tpl] || (poster.imgs[tpl] && !force)) return showImage();
   const g = gen;
@@ -300,6 +339,7 @@ async function ensureImage(force = false) {
     if (g !== gen) return;
     poster.imgs[tpl] = img;
     if (poster.tpl === tpl) redraw();
+    else queueSuite();
   } catch (err) {
     if (g === gen && poster.tpl === tpl) {
       pending[tpl] = false;
@@ -489,6 +529,7 @@ async function songArrive(r, g) {
     frames: (r.frames || []).slice(0, 3),
     imgs: [],
     pick: 0,
+    parts: r.parts || [],
   });
   songRedraw();
   $('#song-save').disabled = false;
@@ -557,7 +598,51 @@ async function songArrive(r, g) {
       S.stop('end', 'done', '没底图也排好了，也能存');
     }
   };
-  retry.addEventListener('click', paint);
+  retry.addEventListener('click', async () => { await paint(); if (g === songGen) await makeMv(g); });
   await paint();
+  if (g === songGen) await makeMv(g);
+}
+
+// 合：三张分镜 + 歌词，推拉摇移放一遍，录成无声的竖屏视频。小样接上后这段画面直接当 MV 的底
+async function makeMv(g) {
+  const shots = planShots(song.imgs, song.parts);
+  if (!shots.length) { S.stop('mix', 'wait', '等分镜'); return; }
+  const cv = el('canvas', 'mv');
+  cv.width = 720;
+  cv.height = 1280;
+  const live = el('p', 'wait', '在合成分镜动画，画面和歌词动起来，十几秒。');
+  S.stop('mix', 'run', '在合成');
+  S.fill('mix', el('div', 'mv-wrap', cv), live);
+  route2.go(5);
+  let out = null;
+  try {
+    out = await recordMv(cv, shots, song.headline, (t, total) => { if (g === songGen) live.textContent = `在合成分镜动画，${Math.round(t)} / ${Math.round(total)} 秒`; });
+  } catch (err) {
+    if (g !== songGen) return;
+    S.stop('mix', 'err', '没合成');
+    S.fill('mix', el('p', 'err', `${err.message}。换台电脑或者 Chrome 再试。`));
+    return;
+  }
+  if (g !== songGen) return;
+  if (!out) {
+    S.stop('mix', 'done', '这个浏览器只能看，存不了');
+    S.fill('mix', el('div', 'mv-wrap', cv), el('p', 'dim', '画面放完了。这个浏览器录不了视频，换 Chrome 能存。'));
+    return;
+  }
+  const url = URL.createObjectURL(out.blob);
+  const video = el('video', 'mv');
+  video.src = url;
+  video.controls = true;
+  video.playsInline = true;
+  video.muted = true;
+  video.loop = true;
+  video.autoplay = true;
+  const dl = el('a', 'quiet', '保存分镜动画');
+  dl.href = url;
+  dl.download = `分镜动画-${song.headline || '未命名'}.${out.ext}`;
+  S.fill('mix', el('div', 'mv-wrap', video), el('p', 'dim', '无声的。小样接上以后，声音合进来就是 MV。'), el('div', 'poster-act', dl));
+  S.stop('mix', 'done', `${Math.round(out.blob.size / 1e5) / 10} MB，无声`);
+  route2.reach(5);
+  route2.reach(6);
 }
 $('#song-save').addEventListener('click', () => openViewer(songCanvas, `歌词海报-${song.headline || '未命名'}-9x16.jpg`));
