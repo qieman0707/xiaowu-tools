@@ -1,5 +1,5 @@
-import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023n';
-import { makeRoute } from './route.js?v=20261023n';
+import { drawPoster, loadFonts, NEEDS_IMAGE } from './poster.js?v=20261023s';
+import { makeRoute } from './route.js?v=20261023s';
 
 // ?api= 只在本机预览时认，线上一律走固定中转，免得别人拿链接把人导去假接口
 const LOCAL = ['localhost', '127.0.0.1'].includes(location.hostname);
@@ -37,7 +37,7 @@ async function call(path, body) {
     // 中转自己报的错是中文大白话，直接给人看；中转没开口（超时、网关出错）就按状态码说人话
     throw new Error(d.error || (
       r.status === 429 ? '用的人有点多，等一分钟再试'
-      : [502, 503, 504, 524].includes(r.status) ? '模型这次没回话，多半是太忙'
+      : [502, 503, 504, 524].includes(r.status) ? '这次没回话，多半是太忙'
       : `服务出错了（${r.status}）`));
   }
   return d;
@@ -68,6 +68,7 @@ function selectTab(t) {
     document.getElementById(x.getAttribute('aria-controls')).hidden = !on;
   }
 }
+if (location.hash === '#singer') selectTab(tabs[1]);
 tabs.forEach((t, i) => {
   t.addEventListener('click', () => selectTab(t));
   t.addEventListener('keydown', (e) => {
@@ -102,7 +103,9 @@ const seed = panel('#p-seed');
 const { stop, fill } = seed;
 
 /* ---------- 种子选手：一句话出文案和海报 ---------- */
-loadFonts().then(() => document.body.classList.add('fonts-ok')).catch(() => {});
+// 字体到了再开场（大字落墨、画洇出来）；字体迟迟不到也不能让人干等，两秒后照样开
+loadFonts().then(() => document.body.classList.add('fonts-ok')).catch(() => {}).finally(() => document.body.classList.add('ready'));
+setTimeout(() => document.body.classList.add('ready'), 2000);
 
 const ask = $('#ask');
 document.querySelectorAll('[data-eg]').forEach((b) =>
@@ -146,7 +149,7 @@ $('#ask-form').addEventListener('submit', async (e) => {
   const tick = () => {
     const s = Math.round((Date.now() - t0) / 1000);
     stop('read', 'run', `已用 ${s} 秒`);
-    fill('read', el('p', 'wait', 'Gemini 4 正在读这句话，顺手把文案和标题一起写了。一般要一两分钟，读完下面几站会一个个盖章。'));
+    fill('read', el('p', 'wait', '正在读这句话，顺手把文案和标题一起写了。一般要一两分钟，读完下面几站会一个个盖章。'));
   };
   tick();
   reveal($('#p-seed [data-stop="read"]'));
@@ -188,7 +191,7 @@ async function arrive(r) {
   $('#xhs-tags').textContent = (r.xhs?.tags || []).join(' ');
   $('#short').textContent = r.short_title || '';
   $('#copy').hidden = false;
-  stop('write', 'done', `预告 ${n(r.teaser)} 字，小红书 ${n(r.xhs?.body)} 字，标题 ${n(r.short_title)} 字`);
+  stop('write', 'done', '三份都好了，各有复制');
   route.reach(2);
   await sleep(450);
 
@@ -266,10 +269,10 @@ function showImage() {
     fill('draw', el('p', 'dim', '「唱片」样式是纯排版，不用画面。'));
     return finish();
   }
-  const scene = el('p', 'scene', `给 Nano Banana 2 的「${STYLE_NAME[tpl]}」画面描述：${poster.scene[kind] || ''}`);
+  const scene = null; // 画面的英文描述是给生图用的，不给用户看
   if (pending[tpl]) {
     stop('draw', 'run', `在画${STYLE_NAME[tpl]}`);
-    fill('draw', scene, el('p', 'wait', '正在画，十几二十秒。画里不放一个字，字全由程序排。'));
+    fill('draw', scene, el('p', 'wait', '正在画，十几二十秒。画里不放一个字，字全由排版来。'));
     if (!finished) route.go(4);
     else stop('end', 'done', '画面画好会自动换上');
   } else if (poster.imgs[tpl]) {
@@ -421,7 +424,7 @@ $('#song-form').addEventListener('submit', async (e) => {
   const t0 = Date.now();
   const tick = () => {
     S.stop('read', 'run', `已用 ${Math.round((Date.now() - t0) / 1000)} 秒`);
-    S.fill('read', el('p', 'wait', 'Gemini 4 正在读这首歌：分段、听情绪、写风格词，顺手把海报字和分镜也想好。一般要一两分钟。'));
+    S.fill('read', el('p', 'wait', '正在读这首歌：分段、听情绪、写风格词，顺手把海报字和分镜也想好。一般要一两分钟。'));
   };
   tick();
   reveal($('#p-singer [data-stop="read"]'));
@@ -500,7 +503,7 @@ async function songArrive(r, g) {
   retry.type = 'button';
   retry.hidden = true;
   S.fill('draw', note, row, el('div', 'poster-act', retry));
-  const mark = () => row.querySelectorAll('img').forEach((m) => m.classList.toggle('on', m.dataset.i == song.pick));
+  const mark = () => row.querySelectorAll('.frame').forEach((m) => m.classList.toggle('on', m.dataset.i == song.pick));
   const paint = async () => {
     const todo = song.frames.map((_, i) => i).filter((i) => !song.imgs[i]);
     retry.hidden = true;
@@ -517,10 +520,13 @@ async function songArrive(r, g) {
         if (g !== songGen) return;
         const first = !song.imgs.some(Boolean);
         song.imgs[i] = img;
-        const t = el('img');
-        t.src = img.src;
-        t.alt = `分镜 ${i + 1}`;
+        const pic = el('img');
+        pic.src = img.src;
+        pic.alt = `分镜 ${i + 1}`;
+        const t = el('button', 'frame', pic);
+        t.type = 'button';
         t.dataset.i = i;
+        t.title = '用这张当底图';
         t.addEventListener('click', () => { song.pick = i; mark(); songRedraw(); });
         slots[i].replaceWith(t);
         // 第一张画好的先当底图
@@ -546,7 +552,7 @@ async function songArrive(r, g) {
     } else {
       route2.idle();
       note.className = 'err';
-      note.textContent = '这次一张都没画出来，多半是模型太忙。点下面重画，不用重新出发。';
+      note.textContent = '这次一张都没画出来，多半是太忙。点下面重画，不用重新出发。';
       S.stop('draw', 'err', '没画出来');
       S.stop('end', 'done', '没底图也排好了，也能存');
     }
